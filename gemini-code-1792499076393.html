@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lomba Cerdas Cermat 2026 - SMA Negeri 1 Tanjung, Brebes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        input, select, textarea {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            user-select: text !important;
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(6, 78, 59, 0.85) 100%), 
+                        url('background.jpg') center/cover no-repeat fixed;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #0d9488; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #0f766e; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-emerald-900/90 backdrop-blur-md text-white shadow-lg sticky top-0 z-50 border-b border-emerald-700/50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-amber-400/20 border border-amber-400/40 rounded-xl flex items-center justify-center text-amber-300">
+                    <i class="fas fa-trophy text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base md:text-lg leading-tight tracking-wide text-emerald-100">Lomba Cerdas Cermat 2026</h1>
+                    <p class="text-xs text-emerald-300 font-medium">SMA Negeri 1 Tanjung, Brebes (45 Menit)</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <div id="headerTimer" class="hidden items-center bg-emerald-950/80 px-3.5 py-1.5 rounded-xl border border-emerald-600/50 shadow-inner">
+                    <i class="far fa-clock text-amber-400 mr-2 animate-pulse"></i>
+                    <span id="timerDisplay" class="font-mono font-bold text-sm text-amber-300">45:00</span>
+                </div>
+                
+                <!-- TOMBOL AKSES JURI -->
+                <button onclick="openLoginModal()" id="btnGuruNav" class="bg-amber-500 hover:bg-amber-600 border border-amber-400 text-slate-950 text-xs font-bold px-3.5 py-2 rounded-xl transition flex items-center space-x-1.5 shadow-md hover:shadow-amber-500/20">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Akses Juri</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
+
+        <!-- 1. Form Registrasi Peserta (Langkah 1: Login & Cek Spreadsheet) -->
+        <div id="identitasSection" class="max-w-md mx-auto bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-emerald-100 p-6 md:p-8">
+
+            <div class="text-center mb-6">
+                <div class="w-28 h-28 mx-auto mb-3 relative flex items-center justify-center rounded-full overflow-hidden border-2 border-emerald-500/30 bg-white shadow-lg p-0.5">
+                    <img src="logo_lcc_3d.png" alt="Maskot 3D LCC" class="w-full h-full object-cover rounded-full">
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">Registrasi Peserta LCC</h2>
+                <p class="text-xs text-slate-500 mt-1">Pilih kelompok/kelas Anda di bawah ini dan masukkan token pengerjaan.</p>
+            </div>
+
+            <div id="blockedAlert" class="hidden mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-sm">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-lg mr-3 mt-0.5"></i>
+                    <div>
+                        <strong class="font-semibold block mb-1">Akses Ditolak / Sudah Mengerjakan</strong>
+                        <span id="blockedMessage">Kelompok ini tercatat telah menyelesaikan babak pengerjaan.</span>
+                        <div class="mt-3">
+                            <button onclick="openTokenModal()" class="text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg transition shadow-sm inline-flex items-center space-x-1">
+                                <i class="fas fa-key text-[10px]"></i>
+                                <span>Buka Akses Ulang (Khusus Juri)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="checkingLoader" class="hidden mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-center space-x-2">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Memeriksa status pengerjaan peserta...</span>
+            </div>
+
+            <form id="startForm" onsubmit="event.preventDefault(); validateLogin();" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Pilih Kelompok / Kelas</label>
+                    <select id="kelasSiswa" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm outline-none transition bg-white">
+                        <option value="" disabled selected>-- Pilih Kelompok / Kelas --</option>
+                        <!-- KELAS X -->
+                        <optgroup label="Kelas X">
+                            <option value="Kelompok X-1">Kelompok X-1</option>
+                            <option value="Kelompok X-2">Kelompok X-2</option>
+                            <option value="Kelompok X-3">Kelompok X-3</option>
+                            <option value="Kelompok X-4">Kelompok X-4</option>
+                            <option value="Kelompok X-5">Kelompok X-5</option>
+                            <option value="Kelompok X-6">Kelompok X-6</option>
+                            <option value="Kelompok X-7">Kelompok X-7</option>
+                            <option value="Kelompok X-8">Kelompok X-8</option>
+                            <option value="Kelompok X-9">Kelompok X-9</option>
+                            <option value="Kelompok X-10">Kelompok X-10</option>
+                            <option value="Kelompok X-11">Kelompok X-11</option>
+                            <option value="Kelompok X-12">Kelompok X-12</option>
+                        </optgroup>
+                        <!-- KELAS XI -->
+                        <optgroup label="Kelas XI">
+                            <option value="Kelompok XI-A1">Kelompok XI-A1</option>
+                            <option value="Kelompok XI-A2">Kelompok XI-A2</option>
+                            <option value="Kelompok XI-A3">Kelompok XI-A3</option>
+                            <option value="Kelompok XI-A4">Kelompok XI-A4</option>
+                            <option value="Kelompok XI-B1">Kelompok XI-B1</option>
+                            <option value="Kelompok XI-B2">Kelompok XI-B2</option>
+                            <option value="Kelompok XI-B3">Kelompok XI-B3</option>
+                            <option value="Kelompok XI-B4">Kelompok XI-B4</option>
+                            <option value="Kelompok XI-C1">Kelompok XI-C1</option>
+                            <option value="Kelompok XI-C2">Kelompok XI-C2</option>
+                            <option value="Kelompok XI-C3">Kelompok XI-C3</option>
+                            <option value="Kelompok XI-C4">Kelompok XI-C4</option>
+                        </optgroup>
+                        <!-- KELAS XII -->
+                        <optgroup label="Kelas XII">
+                            <option value="Kelompok XII-A1">Kelompok XII-A1</option>
+                            <option value="Kelompok XII-A2">Kelompok XII-A2</option>
+                            <option value="Kelompok XII-A3">Kelompok XII-A3</option>
+                            <option value="Kelompok XII-A4">Kelompok XII-A4</option>
+                            <option value="Kelompok XII-B1">Kelompok XII-B1</option>
+                            <option value="Kelompok XII-B2">Kelompok XII-B2</option>
+                            <option value="Kelompok XII-B3">Kelompok XII-B3</option>
+                            <option value="Kelompok XII-B4">Kelompok XII-B4</option>
+                            <option value="Kelompok XII-C1">Kelompok XII-C1</option>
+                            <option value="Kelompok XII-C2">Kelompok XII-C2</option>
+                            <option value="Kelompok XII-C3">Kelompok XII-C3</option>
+                            <option value="Kelompok XII-D">Kelompok XII-D</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Token Lomba</label>
+                    <div class="relative">
+                        <input type="password" id="tokenPengerjaan" required placeholder="Masukkan token pengerjaan" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm outline-none transition font-mono tracking-wider bg-slate-50/50">
+                        <i class="fas fa-key absolute right-3 top-3 text-slate-400 text-xs"></i>
+                    </div>
+                </div>
+
+                <input type="hidden" id="absenSiswa" value="1">
+                <input type="hidden" id="scriptUrl" value="https://script.google.com/macros/s/AKfycbzEK8ciXLFT4rm_6f8JQWZCCs_7_XYFIKkP2tjABQa0PWfeN0LY8p6rxXTxql_zJFt7/exec">
+
+                <button type="submit" id="btnNextLogin" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition duration-200 flex items-center justify-center space-x-2">
+                    <span>Lanjutkan ke Tata Tertib</span>
+                    <i class="fas fa-arrow-right text-sm"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- 1.B Halaman Langkah Kedua: Tata Tertib & Persetujuan -->
+        <div id="rulesSection" class="hidden max-w-lg mx-auto bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-emerald-100 p-6 md:p-8">
+            <div class="text-center mb-5">
+                <div class="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl shadow-inner border border-emerald-200">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">Tata Tertib & Petunjuk Pengerjaan</h2>
+                <p class="text-xs text-slate-500 mt-1">LOMBA CERDAS CERMAT (LCC) TAHUN 2026 - SMA NEGERI 1 TANJUNG, BREBES</p>
+            </div>
+
+            <!-- Box Isi Tata Tertib -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-600 max-h-56 overflow-y-auto custom-scrollbar space-y-3 leading-relaxed mb-4">
+                <div>
+                    <strong class="text-slate-800 block mb-1">A. KETENTUAN UMUM PESERTA</strong>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Status Peserta:</strong> Peserta merupakan perwakilan kelompok/kelas yang telah terdaftar secara resmi di panitia.</li>
+                        <li><strong>Perangkat Ujian:</strong> Setiap kelompok menggunakan perangkat gawai (smartphone, tablet, atau laptop) yang telah dipinjamkan/disediakan atau disetujui oleh panitia.</li>
+                        <li><strong>Koneksi Internet:</strong> Peserta wajib memastikan perangkat memiliki koneksi internet yang stabil selama perlombaan berlangsung.</li>
+                    </ul>
+                </div>
+                <div>
+                    <strong class="text-slate-800 block mb-1">B. PETUNJUK PENGERJAAN SOAL</strong>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Durasi Ujian:</strong> Waktu pengerjaan soal adalah 45 menit dan akan dihitung mundur secara otomatis sejak tombol mulai ditekan.</li>
+                        <li><strong>Jumlah & Jenis Soal:</strong> Terdapat 20 soal pilihan ganda yang diacak secara otomatis oleh sistem untuk setiap kelompok.</li>
+                        <li><strong>Sistem Navigasi:</strong> 
+                            <div class="pl-2 mt-0.5 space-y-0.5">
+                                - Peserta dapat berpindah antarsoal menggunakan panel navigasi soal yang tersedia di sisi layar.<br>
+                                - Indikator warna pada tombol navigasi menunjukkan status soal:
+                                <div class="pl-3 space-y-0.5 mt-0.5">
+                                    * <strong>Hijau Tua:</strong> Soal yang sedang dikerjakan.<br>
+                                    * <strong>Hijau Muda / Teals:</strong> Soal yang sudah dijawab.<br>
+                                    * <strong>Abu-abu / Putih:</strong> Soal yang belum dijawab.
+                                </div>
+                            </div>
+                        </li>
+                        <li><strong>Pengiriman Jawaban:</strong> 
+                            <div class="pl-2 mt-0.5 space-y-0.5">
+                                - Pastikan semua soal telah dijawab sebelum waktu habis.<br>
+                                - Klik tombol "Selesai & Kirim Jawaban" di bagian bawah panel navigasi untuk mengakhiri ujian dan mengirimkan nilai secara otomatis ke server panitia.<br>
+                                - Sistem akan mengunci otomatis dan mengirimkan jawaban jika batas waktu 45 menit telah habis.
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <strong class="text-slate-800 block mb-1">C. TATA TERTIB PESERTA (LARANGAN)</strong>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Dilarang Curang:</strong> Peserta dilarang keras bekerja sama, berdiskusi dengan kelompok lain, atau melihat catatan/buku luar selama perlombaan berlangsung.</li>
+                        <li><strong>Dilarang Keluar Aplikasi:</strong> Peserta dilarang keluar dari halaman ujian, membuka tab browser lain, atau menggunakan aplikasi pendukung eksternal di luar sistem ujian.</li>
+                        <li><strong>Pelanggaran:</strong> Kelompok yang terbukti melakukan kecurangan atau melanggar tata tertib akan didiskualifikasi oleh Juri.</li>
+                    </ul>
+                </div>
+                <div>
+                    <strong class="text-slate-800 block mb-1">D. KETENTUAN KHUSUS / BANTUAN JURI</strong>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li><strong>Kendala Teknis:</strong> Jika terjadi gangguan jaringan, error pada sistem, atau perangkat peserta mati mendadak, segera laporkan kepada Juri/Pengawas di ruangan.</li>
+                    </ul>
+                </div>
+                <div class="text-center font-bold text-emerald-800 pt-2 border-t border-slate-200">
+                    Selamat berlomba kepada seluruh perwakilan kelompok. Junjung tinggi sportivitas dan kejujuran!
+                </div>
+            </div>
+
+            <!-- Kotak Dialog Checkbox Persetujuan Peserta -->
+            <div class="mb-5 flex items-start space-x-2.5 bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-200/80 shadow-sm">
+                <input type="checkbox" id="agreeCheckbox" onchange="toggleStartButton()" class="mt-0.5 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer">
+                <label for="agreeCheckbox" class="text-xs text-slate-700 font-semibold cursor-pointer select-none">
+                    Saya menyatakan telah membaca, memahami, dan menyetujui seluruh tata tertib serta petunjuk pengerjaan LCC SMA Negeri 1 Tanjung di atas.
+                </label>
+            </div>
+
+            <div class="flex space-x-3">
+                <button onclick="backToLogin()" class="w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3.5 rounded-xl text-xs transition">
+                    <i class="fas fa-arrow-left mr-1"></i> Kembali
+                </button>
+                <button type="button" id="btnStartQuiz" disabled onclick="startQuiz()" class="w-2/3 bg-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-lg transition duration-200 flex items-center justify-center space-x-2 opacity-50 cursor-not-allowed text-xs">
+                    <span>Mulai Pengerjaan (45 Menit)</span>
+                    <i class="fas fa-arrow-right text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. Halaman Pengerjaan Soal -->
+        <div id="quizSection" class="hidden grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div class="lg:col-span-3 space-y-6">
+                <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-emerald-100 p-6 md:p-8">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+                        <span class="text-xs font-extrabold text-emerald-700 uppercase tracking-wider bg-emerald-100/80 px-3 py-1.5 rounded-xl">Soal No. <span id="currentQuestionNum">1</span> dari <span id="totalQuestionsCount">20</span></span>
+                        <div class="text-xs text-slate-500 font-medium">
+                            Terjawab: <span id="answeredCount" class="font-bold text-slate-800">0</span>/<span id="totalQuestionsCount2">20</span>
+                        </div>
+                    </div>
+
+                    <div id="questionText" class="text-base md:text-lg font-semibold text-slate-900 mb-6 leading-relaxed"></div>
+                    <div id="optionsContainer" class="space-y-3"></div>
+
+                    <div class="flex justify-between items-center mt-8 pt-5 border-t border-slate-100">
+                        <button id="prevBtn" onclick="navigateQuestion(-1)" class="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 text-sm font-semibold flex items-center space-x-2 transition disabled:opacity-40">
+                            <i class="fas fa-chevron-left text-xs"></i>
+                            <span>Sebelumnya</span>
+                        </button>
+                        
+                        <button id="nextBtn" onclick="navigateQuestion(1)" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-semibold flex items-center space-x-2 transition shadow-md">
+                            <span>Berikutnya</span>
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-1">
+                <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-emerald-100 p-5 sticky top-20">
+                    <h3 class="font-bold text-sm text-slate-800 mb-3 border-b pb-2 flex items-center space-x-2">
+                        <i class="fas fa-th-large text-emerald-600"></i>
+                        <span>Navigasi Soal</span>
+                    </h3>
+                    <div id="questionGrid" class="grid grid-cols-5 gap-2 max-h-[320px] overflow-y-auto custom-scrollbar p-1"></div>
+                    
+                    <div class="mt-6 pt-4 border-t border-slate-100 space-y-3">
+                        <div class="flex items-center space-x-2 text-xs text-slate-600 font-medium">
+                            <span class="w-3 h-3 rounded-full bg-emerald-600 inline-block"></span>
+                            <span>Sedang Dikerjakan</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-xs text-slate-600 font-medium">
+                            <span class="w-3 h-3 rounded-full bg-teal-500 inline-block"></span>
+                            <span>Sudah Dijawab</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-xs text-slate-600 font-medium">
+                            <span class="w-3 h-3 rounded-full bg-slate-100 border border-slate-300 inline-block"></span>
+                            <span>Belum Dijawab</span>
+                        </div>
+
+                        <button onclick="confirmSubmission()" class="w-full mt-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl text-sm shadow-md transition flex items-center justify-center space-x-2">
+                            <i class="fas fa-paper-plane text-xs"></i>
+                            <span>Selesai & Kirim Jawaban</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Halaman Akhir Peserta (Tanpa Skor) -->
+        <div id="resultSection" class="hidden max-w-xl mx-auto space-y-6">
+            <div class="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-emerald-100 p-8 md:p-10 text-center">
+                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl shadow-inner">
+                    <i class="fas fa-award"></i>
+                </div>
+                
+                <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Jawaban Berhasil Terkirim!</h2>
+                
+                <div class="p-5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900 text-sm font-semibold my-6 leading-relaxed shadow-sm">
+                    Terimakasih, Anda telah berpartisipasi dalam Lomba Cerdas Cermat 2026 SMA Negeri 1 Tanjung, Brebes
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+                    <span class="block text-[10px] text-slate-500 uppercase font-bold tracking-wider">Kelompok / Kelas</span>
+                    <span id="resKelasAbsen" class="font-bold text-slate-800 text-base block mt-1">-</span>
+                </div>
+
+                <div id="submissionStatus" class="mt-6 p-3.5 bg-amber-50 rounded-xl text-xs font-semibold text-amber-800 flex items-center justify-center space-x-2 border border-amber-200">
+                    <i class="fas fa-spinner fa-spin text-sm"></i>
+                    <span>Memproses pengiriman jawaban ke server...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. DASHBOARD JURI -->
+        <div id="guruDashboardSection" class="hidden space-y-6">
+            <div class="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-emerald-100 p-6 md:p-8">
+                <div class="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-900 flex items-center space-x-2">
+                            <i class="fas fa-gavel text-amber-500"></i>
+                            <span>Panel Rekapitulasi Nilai LCC 2026 (Juri)</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">Data hasil nilai pengerjaan seluruh kelompok peserta lomba.</p>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3">
+                        <button onclick="fetchGuruData()" class="px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border border-emerald-200">
+                            <i class="fas fa-sync-alt" id="refreshIcon"></i>
+                            <span>Muat Ulang Data</span>
+                        </button>
+                        <button onclick="logoutGuru()" class="px-3.5 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border border-rose-200">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Keluar Panel</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter & Search -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Cari Kelompok</label>
+                        <div class="relative">
+                            <input type="text" id="searchGuru" oninput="filterAndRenderGuruTable()" placeholder="Ketik nama kelompok..." class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Filter Kelompok/Kelas</label>
+                        <select id="filterKelasGuru" onchange="filterAndRenderGuruTable()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
+                            <option value="ALL">Semua Kelompok</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 w-full flex justify-between items-center">
+                            <span class="text-xs text-slate-500 font-medium">Total Peserta Terdata:</span>
+                            <span id="totalSiswaBadge" class="text-sm font-bold text-emerald-700">0 Kelompok</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Data Nilai -->
+                <div class="overflow-x-auto rounded-2xl border border-slate-200 custom-scrollbar">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-emerald-900 text-white font-bold border-b border-emerald-950">
+                                <th class="p-3.5">Kelompok / Kelas</th>
+                                <th class="p-3.5 text-center">Skor (Benar/Total)</th>
+                                <th class="p-3.5 text-center">Nilai Akhir</th>
+                                <th class="p-3.5 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="guruTableBody" class="divide-y divide-slate-100 text-slate-700 bg-white"></tbody>
+                    </table>
+                </div>
+
+                <div id="guruTableLoader" class="py-12 text-center text-slate-400 text-xs">
+                    <i class="fas fa-spinner fa-spin text-2xl text-emerald-600 mb-2"></i>
+                    <p>Mengambil data nilai dari Google Sheets...</p>
+                </div>
+
+                <div id="guruTableEmpty" class="hidden py-12 text-center text-slate-400 text-xs">
+                    <i class="fas fa-folder-open text-3xl text-slate-300 mb-2"></i>
+                    <p>Belum ada data nilai peserta LCC yang ditemukan.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Login Juri -->
+    <div id="loginGuruModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+                    <i class="fas fa-user-shield text-amber-500"></i>
+                    <span>Login Akses Juri</span>
+                </h3>
+                <button onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-600 text-sm">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form onsubmit="event.preventDefault(); processGuruLogin();" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Username</label>
+                    <input type="text" id="guruUsername" required placeholder="Masukkan username" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+                    <input type="password" id="guruPassword" required placeholder="Masukkan password" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 text-xs outline-none">
+                </div>
+                <p id="loginErrorMsg" class="hidden text-xs text-rose-600 font-semibold mt-1">Username atau Password Juri salah!</p>
+                
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeLoginModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl transition shadow-md">Masuk Panel Juri</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Edit Nilai Siswa -->
+    <div id="editNilaiModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+                    <i class="fas fa-edit text-emerald-600"></i>
+                    <span>Edit Nilai Kelompok</span>
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 text-sm">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form onsubmit="event.preventDefault(); saveEditedScore();" class="space-y-3">
+                <input type="hidden" id="editIndex">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase">Kelompok / Kelas</label>
+                    <input type="text" id="editKelas" disabled class="w-full px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Skor Benar (dari 20 Soal)</label>
+                    <input type="number" id="editSkor" min="0" max="20" required oninput="calculateEditPercentage()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nilai Akhir (0 - 100)</label>
+                    <input type="number" id="editPersentase" readonly class="w-full px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 outline-none">
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+                    <button type="submit" id="btnSaveEdit" class="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition shadow-md">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Token Juri untuk Akses Ulang Peserta -->
+    <div id="tokenModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+                    <i class="fas fa-user-shield text-amber-500"></i>
+                    <span>Verifikasi Token Juri</span>
+                </h3>
+                <button onclick="closeTokenModal()" class="text-slate-400 hover:text-slate-600 text-sm"><i class="fas fa-times"></i></button>
+            </div>
+            <p class="text-xs text-slate-500">Masukkan token juri untuk memberikan izin pengerjaan ulang pada kelompok ini.</p>
+            <div>
+                <input type="password" id="inputTokenGuru" placeholder="Masukkan Token Juri" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm outline-none">
+                <p id="tokenErrorMsg" class="hidden text-xs text-rose-600 font-semibold mt-1">Token salah! Akses ditolak.</p>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeTokenModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+                <button onclick="verifyTeacherToken()" class="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition shadow-md">Buka Akses Ulang</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Anti Curang / Disable Right Click & Inspect
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('selectstart', e => { if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) e.preventDefault(); });
+        document.addEventListener('copy', e => e.preventDefault());
+        document.addEventListener('cut', e => e.preventDefault());
+        document.addEventListener('dragstart', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && [73, 67, 74].includes(e.keyCode)) || (e.ctrlKey && [85, 83, 65, 67].includes(e.keyCode))) {
+                e.preventDefault();
+            }
+        });
+
+        // Toggle Tombol Mulai Berdasarkan Checklist Persetujuan Tata Tertib
+        function toggleStartButton() {
+            const checkbox = document.getElementById('agreeCheckbox');
+            const btnStart = document.getElementById('btnStartQuiz');
+            
+            if (checkbox.checked) {
+                btnStart.disabled = false;
+                btnStart.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnStart.classList.add('hover:shadow-emerald-600/30');
+            } else {
+                btnStart.disabled = true;
+                btnStart.classList.add('opacity-50', 'cursor-not-allowed');
+                btnStart.classList.remove('hover:shadow-emerald-600/30');
+            }
+        }
+
+        function backToLogin() {
+            document.getElementById('rulesSection').classList.add('hidden');
+            document.getElementById('identitasSection').classList.remove('hidden');
+            document.getElementById('agreeCheckbox').checked = false;
+            toggleStartButton();
+        }
+
+        // Kredensial Lomba & Akses Juri
+        const SECRET_TEACHER_TOKEN = "JURI2026";
+        const REQUIRED_STUDENT_TOKEN = "LCC2026";
+        const TOTAL_DURATION_SECONDS = 45 * 60; // 45 Menit
+
+        const GURU_USER = "admin";
+        const GURU_PASS = "00000000";
+
+        let guruAllData = [];
+
+        // Soal LCC (20 Soal Diperbarui dari Dokumen Word)
+        const rawQuestionsData = [
+            {
+                "id": 1,
+                "text": "Jika a ⊗ b = (a × b) / (a + b), maka nilai dari 2 ⊗ (2 ⊗ 2) adalah...",
+                "options": ["A. 1/2", "B. 2/3", "C. 1", "D. 4/3", "E. 2"],
+                "answer": 1
+            },
+            {
+                "id": 2,
+                "text": "Bentuk paling sederhana dari (x² - 9) / (2x² - 5x - 3) untuk x ≠ 3 adalah...",
+                "options": ["A. (x - 3) / (2x - 1)", "B. (x + 3) / (2x - 1)", "C. (x + 3) / (2x + 1)", "D. (x - 3) / (2x + 1)", "E. (x - 3) / (x + 3)"],
+                "answer": 2
+            },
+            {
+                "id": 3,
+                "text": "Sebuah segitiga memiliki koordinat titik sudut di A(2, 3), B(8, 3), dan C(5, 7). Luas segitiga ABC tersebut adalah... satuan luas.",
+                "options": ["A. 12", "B. 14", "C. 24", "D. 28", "E. 48"],
+                "answer": 0
+            },
+            {
+                "id": 4,
+                "text": "Panjang sisi-sisi sebuah segitiga adalah x, x+3, dan x+6. Jika segitiga tersebut adalah segitiga siku-siku, maka keliling segitiga tersebut adalah...",
+                "options": ["A. 12", "B. 24", "C. 36", "D. 48", "E. 60"],
+                "answer": 2
+            },
+            {
+                "id": 5,
+                "text": "Nilai dari (2<sup>2026</sup> - 2<sup>2024</sup>) / (2<sup>2024</sup> + 2<sup>2024</sup>) adalah...",
+                "options": ["A. 1", "B. 3/2", "C. 2", "D. 3", "E. 4"],
+                "answer": 1
+            },
+            {
+                "id": 6,
+                "text": "Sebuah foto berukuran 20 cm x 30 cm ditempel pada sebuah karton. Di sebelah kiri, kanan, dan atas foto masih terdapat sisa karton selebar 2 cm. Jika foto dan karton sebangun, maka lebar sisa karton di bagian bawah foto adalah...",
+                "options": ["A. 2 cm", "B. 3 cm", "C. 4 cm", "D. 5 cm", "E. 6 cm"],
+                "answer": 2
+            },
+            {
+                "id": 7,
+                "text": "Seorang pedagang membeli sekeranjang mangga seharga Rp500.000,00. Di dalam keranjang tersebut terdapat 5% mangga yang busuk dan tidak bisa dijual. Jika pedagang ingin mendapatkan keuntungan bersih sebesar 14% dari seluruh mangganya yang tersisa, berapa persentase keuntungan yang harus ia tetapkan dari harga jual mangga per kilogramnya dibandingkan harga beli awal per kilogram?",
+                "options": ["A. 9%", "B. 14%", "C. 19%", "D. 20%", "E. 25%"],
+                "answer": 3
+            },
+            {
+                "id": 8,
+                "text": "Jika 3x - 4 = 2, Keliling sebuah persegi adalah 4x + 8. Luas persegi tersebut adalah... satuan luas.",
+                "options": ["A. 4", "B. 9", "C. 16", "D. 25", "E. 36"],
+                "answer": 2
+            },
+            {
+                "id": 9,
+                "text": "Sebuah pekerjaan dapat diselesaikan oleh 12 orang dalam waktu 20 hari. Setelah bekerja selama 5 hari, pekerjaan dihentikan selama 3 hari karena kehabisan bahan baku. Agar pekerjaan selesai tepat waktu, banyak tambahan pekerja yang dibutuhkan adalah... orang.",
+                "options": ["A. 3", "B. 4", "C. 5", "D. 8", "E. 15"],
+                "answer": 0
+            },
+            {
+                "id": 10,
+                "text": "Jumlah dari 50 suku pertama dari barisan bilangan: 1, -2, 3, -4, 5, -6, ... adalah...",
+                "options": ["A. -50", "B. -25", "C. 0", "D. 25", "E. 50"],
+                "answer": 1
+            },
+            {
+                "id": 11,
+                "text": "Diketahui fungsi f(x) = ax + b. Jika f(f(1)) = 8 dan f(1) = 3, maka nilai dari a + b adalah...",
+                "options": ["A. 1", "B. 2", "C. 3", "D. 5", "E. 8"],
+                "answer": 2
+            },
+            {
+                "id": 12,
+                "text": "Garis g tegak lurus dengan garis 2x - 3y + 6 = 0 dan melalui titik (4, -1). Persamaan garis g adalah...",
+                "options": ["A. 3x + 2y - 10 = 0", "B. 3x - 2y - 14 = 0", "C. 2x + 3y - 5 = 0", "D. 3x + 2y - 14 = 0", "E. 2x - 3y - 11 = 0"],
+                "answer": 0
+            },
+            {
+                "id": 13,
+                "text": "Jika α dan β adalah akar-akar dari persamaan kuadrat x² - 5x + 3 = 0, maka nilai dari (1/α) + (1/β) adalah...",
+                "options": ["A. 5/3", "B. 3/5", "C. -5/3", "D. -3/5", "E. 5"],
+                "answer": 0
+            },
+            {
+                "id": 14,
+                "text": "Sebuah kerucut, tabung, dan bola memiliki jari-jari r yang sama. Jika tinggi kerucut dan tinggi tabung sama dengan diameter bola, maka perbandingan volume Kerucut : Bola : Tabung adalah...",
+                "options": ["A. 1 : 2 : 3", "B. 1 : 3 : 2", "C. 2 : 1 : 3", "D. 3 : 2 : 1", "E. 2 : 3 : 1"],
+                "answer": 0
+            },
+            {
+                "id": 15,
+                "text": "Rata-rata nilai ujian Matematika dari 5 orang siswa adalah 80. Jika nilai siswa dengan skor tertinggi dikeluarkan, rata-rata nilainya menjadi 76. Nilai maksimum yang mungkin didapatkan oleh siswa dengan skor terendah agar jangkauan bernilai sekecil mungkin adalah...",
+                "options": ["A. 72", "B. 74", "C. 76", "D. 78", "E. 80"],
+                "answer": 2
+            },
+            {
+                "id": 16,
+                "text": "Jika sistem persamaan:<br>3/x + 4/y = 5<br>6/x - 2/y = 0<br>Maka nilai dari variabel x adalah...",
+                "options": ["A. 1", "B. 2", "C. 3", "D. 4", "E. 5"],
+                "answer": 2
+            },
+            {
+                "id": 17,
+                "text": "Dua buah lingkaran dengan jari-jari masing-masing 7 cm dan 2 cm memiliki jarak kedua pusat lingkaran sebesar 13 cm. Panjang garis singgung persekutuan luar kedua lingkaran tersebut adalah...",
+                "options": ["A. 5 cm", "B. 11 cm", "C. 12 cm", "D. 14 cm", "E. 15 cm"],
+                "answer": 2
+            },
+            {
+                "id": 18,
+                "text": "Sebuah titik P(x, y) dicerminkan terhadap garis y = x, kemudian hasilnya dirotasikan sejauh 90° berlawanan arah jarum jam dengan pusat (0,0) menghasilkan bayangan P''(-3, 5). Koordinat titik P semula adalah...",
+                "options": ["A. (5, 3)", "B. (-5, 3)", "C. (3, 5)", "D. (-3, -5)", "E. (-5, -3)"],
+                "answer": 1
+            },
+            {
+                "id": 19,
+                "text": "Dua buah dadu adil dilempar bersamaan satu kali. Peluang munculnya mata dadu yang hasil kalinya merupakan bilangan genap adalah...",
+                "options": ["A. 1/4", "B. 1/2", "C. 3/4", "D. 5/6", "E. 8/9"],
+                "answer": 2
+            },
+            {
+                "id": 20,
+                "text": "Sebuah kubus besar kayu dengan panjang rusuk 3 cm dicat seluruh permukaan luarnya dengan warna merah. Kubus tersebut kemudian dipotong-potong menjadi 27 kubus kecil berukuran 1 cm x 1 cm x 1 cm. Banyaknya kubus kecil yang memiliki tepat dua sisi berwarna merah adalah...",
+                "options": ["A. 6", "B. 8", "C. 12", "D. 18", "E. 24"],
+                "answer": 2
+            }
+        ];
+
+        let questionsData = [];
+        let currentQuestion = 0;
+        let userAnswers = [];
+        let studentData = {};
+        let timerInterval = null;
+        let startTime = null;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        async function checkIdentityAvailability() {
+            const kelas = document.getElementById('kelasSiswa').value;
+            const absen = document.getElementById('absenSiswa').value || "1";
+            const scriptUrl = document.getElementById('scriptUrl').value.trim();
+            const alertBox = document.getElementById('blockedAlert');
+            const alertMsg = document.getElementById('blockedMessage');
+            const btnNext = document.getElementById('btnNextLogin');
+            const loader = document.getElementById('checkingLoader');
+
+            if (!kelas) return;
+
+            if (localStorage.getItem(`completed_quiz_${kelas}_${absen}`)) {
+                alertMsg.innerText = `Peserta ${kelas} tercatat telah menyelesaikan babak ini di perangkat ini.`;
+                alertBox.classList.remove('hidden');
+                btnNext.disabled = true;
+                btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
+            }
+
+            if (scriptUrl) {
+                loader.classList.remove('hidden');
+                btnNext.disabled = true;
+                btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+
+                try {
+                    const checkUrl = `${scriptUrl}?kelas=${encodeURIComponent(kelas)}&absen=${encodeURIComponent(absen)}`;
+                    const response = await fetch(checkUrl);
+                    const resData = await response.json();
+
+                    if (resData.alreadySubmitted) {
+                        alertMsg.innerText = `Peserta ${kelas} tercatat SUDAH MENGERJAKAN di server. Akses pengerjaan dikunci.`;
+                        alertBox.classList.remove('hidden');
+                        btnNext.disabled = true;
+                        btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        alertBox.classList.add('hidden');
+                        btnNext.disabled = false;
+                        btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                } catch (err) {
+                    alertBox.classList.add('hidden');
+                    btnNext.disabled = false;
+                    btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+                } finally {
+                    loader.classList.add('hidden');
+                }
+            }
